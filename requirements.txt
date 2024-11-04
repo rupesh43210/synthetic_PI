@@ -1,19 +1,19 @@
-# Core data processing
+# Core data processing libraries
 pandas==2.2.0
 numpy==1.26.3
 
 # Data generation
 Faker==22.0.0
 
-# Performance optimization
-pyarrow==14.0.2
-fastparquet==2023.10.1
-swifter==1.4.0
+# File format support
+pyarrow==14.0.2        # For parquet file support
+fastparquet==2023.10.1 # Alternative parquet engine
+swifter==1.4.0         # Parallel pandas operations
 
-# File formats
-openpyxl==3.1.2
-xlsxwriter==3.1.9
+# Excel file support (optional)
+openpyxl==3.1.2        # For reading/writing Excel files
+xlsxwriter==3.1.9      # Better performance for large Excel files
 
-# Progress bars and parallel processing
-tqdm==4.66.1
-psutil==5.9.8
+# System monitoring and progress tracking
+tqdm==4.66.1           # Progress bars
+psutil==5.9.8          # System resource monitoring
