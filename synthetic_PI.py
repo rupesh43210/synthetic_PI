@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd 
 import numpy as np
 from faker import Faker
 from datetime import datetime, timedelta
@@ -21,15 +21,7 @@ class MassivePIGenerator:
                  chunk_size: int = 500_000, 
                  num_processes: int = None,
                  seed: int = 42):
-        """
-        Initialize the PI data generator optimized for massive datasets
-        
-        Args:
-            num_records: Total number of records to generate (default: 100M)
-            chunk_size: Number of records per chunk (default: 500K)
-            num_processes: Number of parallel processes (default: CPU count - 1)
-            seed: Random seed for reproducibility
-        """
+        """Initialize the PI data generator"""
         self.fake = Faker()
         Faker.seed(seed)
         random.seed(seed)
@@ -39,10 +31,7 @@ class MassivePIGenerator:
         self.chunk_size = chunk_size
         self.num_processes = num_processes or max(1, multiprocessing.cpu_count() - 1)
         
-        # Setup logging
         self.setup_logging()
-        
-        # Load reference data
         self.load_reference_data()
         
     def setup_logging(self):
@@ -62,27 +51,18 @@ class MassivePIGenerator:
         self.reference_data = {
             'conditions': [
                 'Diabetes', 'Hypertension', 'Asthma', 'Arthritis', 'Depression',
-                'Anxiety', 'COPD', 'Cancer', 'Heart Disease', 'Allergies',
-                'Migraine', 'Osteoporosis', 'Obesity', 'Sleep Apnea'
+                'Anxiety', 'COPD', 'Cancer', 'Heart Disease', 'Allergies'
             ],
             'medications': [
                 'Metformin', 'Lisinopril', 'Albuterol', 'Ibuprofen', 'Sertraline',
-                'Alprazolam', 'Omeprazole', 'Levothyroxine', 'Atorvastatin', 'Amlodipine',
-                'Gabapentin', 'Metoprolol', 'Losartan', 'Fluoxetine'
+                'Alprazolam', 'Omeprazole', 'Levothyroxine', 'Atorvastatin', 'Amlodipine'
             ],
             'blood_types': ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'],
-            'insurance_types': ['PPO', 'HMO', 'EPO', 'POS', 'HDHP', 'Medicare', 'Medicaid'],
-            'departments': ['IT', 'HR', 'Finance', 'Sales', 'Marketing', 'Operations', 
-                          'Legal', 'R&D', 'Customer Service', 'Engineering'],
-            'education_levels': ['High School', 'Bachelor', 'Master', 'PhD', 'Associate', 
-                               'Trade School', 'Some College'],
-            'marital_status': ['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 
-                              'Domestic Partnership'],
-            'ethnicities': ['Caucasian', 'African American', 'Asian', 'Hispanic', 
-                          'Native American', 'Pacific Islander', 'Mixed'],
-            'job_levels': ['Entry', 'Mid', 'Senior', 'Manager', 'Director', 'VP', 'C-Level'],
-            'payment_methods': ['Credit Card', 'Debit Card', 'Bank Transfer', 'Cash', 
-                              'Insurance', 'Medicare', 'Medicaid']
+            'insurance_types': ['PPO', 'HMO', 'EPO', 'POS', 'HDHP'],
+            'departments': ['IT', 'HR', 'Finance', 'Sales', 'Marketing', 'Operations', 'Legal'],
+            'education_levels': ['High School', 'Bachelor', 'Master', 'PhD', 'Associate'],
+            'marital_status': ['Single', 'Married', 'Divorced', 'Widowed'],
+            'ethnicities': ['Caucasian', 'African American', 'Asian', 'Hispanic', 'Native American']
         }
 
     def generate_chunk(self, chunk_id: int) -> dict:
@@ -91,16 +71,11 @@ class MassivePIGenerator:
         if size <= 0:
             return None
 
-        # Generate base data with numpy for better performance
-        np.random.seed(chunk_id)  # Ensure reproducibility per chunk
-        
         data = {
             # Identifiers
             'id': [str(uuid.uuid4()) for _ in range(size)],
             'ssn': [f"{random.randint(100,999)}-{random.randint(10,99)}-{random.randint(1000,9999)}" 
                    for _ in range(size)],
-            'driver_license': [f"{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}{random.randint(100000, 999999)}" 
-                             for _ in range(size)],
             
             # Personal Info
             'full_name': [self.fake.name() for _ in range(size)],
@@ -109,14 +84,11 @@ class MassivePIGenerator:
             'gender': np.random.choice(['M', 'F', 'NB'], size=size),
             'ethnicity': np.random.choice(self.reference_data['ethnicities'], size=size),
             'marital_status': np.random.choice(self.reference_data['marital_status'], size=size),
-            'education': np.random.choice(self.reference_data['education_levels'], size=size),
             
             # Contact Info
             'email': [self.fake.email() for _ in range(size)],
-            'phone_home': [f"{random.randint(100,999)}-{random.randint(100,999)}-{random.randint(1000,9999)}" 
-                          for _ in range(size)],
-            'phone_mobile': [f"{random.randint(100,999)}-{random.randint(100,999)}-{random.randint(1000,9999)}" 
-                           for _ in range(size)],
+            'phone': [f"{random.randint(100,999)}-{random.randint(100,999)}-{random.randint(1000,9999)}" 
+                     for _ in range(size)],
             'address': [self.fake.street_address() for _ in range(size)],
             'city': [self.fake.city() for _ in range(size)],
             'state': [self.fake.state() for _ in range(size)],
@@ -126,54 +98,29 @@ class MassivePIGenerator:
             'credit_card': [f"{random.randint(1000,9999)}-{random.randint(1000,9999)}-"
                           f"{random.randint(1000,9999)}-{random.randint(1000,9999)}" 
                           for _ in range(size)],
-            'cc_exp': [f"{random.randint(1,12):02d}/{random.randint(2024,2030)}" 
-                      for _ in range(size)],
-            'cc_cvv': [f"{random.randint(100,999)}" for _ in range(size)],
             'bank_account': [str(random.randint(10000000, 99999999)) for _ in range(size)],
-            'bank_routing': [str(random.randint(100000000, 999999999)) for _ in range(size)],
             'salary': np.random.uniform(30000, 200000, size=size).round(2),
             
             # Employment Info
             'employer': [self.fake.company() for _ in range(size)],
             'department': np.random.choice(self.reference_data['departments'], size=size),
             'job_title': [self.fake.job() for _ in range(size)],
-            'job_level': np.random.choice(self.reference_data['job_levels'], size=size),
             'hire_date': [self.fake.date_between(start_date='-10y').strftime('%Y-%m-%d') 
                          for _ in range(size)],
-            'employee_id': [f"EMP{random.randint(10000, 99999)}" for _ in range(size)],
             
             # Medical Info
             'blood_type': np.random.choice(self.reference_data['blood_types'], size=size),
-            'height_cm': np.random.uniform(150, 200, size=size).round(1),
-            'weight_kg': np.random.uniform(45, 120, size=size).round(1),
             'conditions': [','.join(np.random.choice(self.reference_data['conditions'], 
                                                    size=random.randint(0, 3), replace=False))
                          for _ in range(size)],
             'medications': [','.join(np.random.choice(self.reference_data['medications'], 
                                                     size=random.randint(0, 3), replace=False))
-                          for _ in range(size)],
-            'allergies': [random.choice(['None', 'Peanuts', 'Penicillin', 'Latex', 'Dairy', 'Shellfish']) 
                          for _ in range(size)],
             
             # Insurance Info
             'insurance_provider': [self.fake.company() for _ in range(size)],
             'insurance_type': np.random.choice(self.reference_data['insurance_types'], size=size),
-            'insurance_id': [f"INS{random.randint(100000, 999999)}" for _ in range(size)],
-            'insurance_group': [f"GRP{random.randint(10000, 99999)}" for _ in range(size)],
-            'policy_number': [f"POL{random.randint(1000000, 9999999)}" for _ in range(size)],
-            
-            # Technical Info
-            'ip_address': [f"{random.randint(1,255)}.{random.randint(1,255)}."
-                         f"{random.randint(1,255)}.{random.randint(1,255)}" 
-                         for _ in range(size)],
-            'device_id': [str(uuid.uuid4()) for _ in range(size)],
-            'user_agent': [self.fake.user_agent() for _ in range(size)],
-            
-            # Payment Info
-            'preferred_payment': np.random.choice(self.reference_data['payment_methods'], size=size),
-            'last_payment_date': [self.fake.date_between(start_date='-1y').strftime('%Y-%m-%d') 
-                                for _ in range(size)],
-            'last_payment_amount': np.random.uniform(100, 5000, size=size).round(2),
+            'policy_number': [f"POL{random.randint(1000000, 9999999)}" for _ in range(size)]
         }
         
         return data
@@ -186,7 +133,7 @@ class MassivePIGenerator:
 
     def save_to_excel(self, df: pd.DataFrame, base_path: str):
         """Save dataframe to Excel files (splits if needed)"""
-        excel_row_limit = 1_000_000  # Slightly under Excel's limit of 1,048,576
+        excel_row_limit = 1_000_000  # Slightly under Excel's limit
         total_rows = len(df)
         
         if total_rows > excel_row_limit:
@@ -253,4 +200,69 @@ class MassivePIGenerator:
                 chunk_files.append(chunk_file)
                 
                 chunk_data = self.generate_chunk(chunk_id)
-                if
+                if chunk_data:
+                    self.save_chunk(chunk_data, chunk_file)
+                
+                if chunk_id % 10 == 0:
+                    gc.collect()
+        
+        # Read chunks and combine
+        self.logger.info("Combining chunks...")
+        dfs = []
+        for chunk_file in tqdm(chunk_files, desc="Reading chunks"):
+            df = pd.read_parquet(chunk_file)
+            dfs.append(df)
+        
+        combined_df = pd.concat(dfs, ignore_index=True)
+        
+        # Save in each requested format
+        base_path = f"{output_dir}/pi_data_{self.num_records}"
+        
+        if 'parquet' in formats:
+            self.logger.info("Saving to parquet format...")
+            combined_df.to_parquet(f"{base_path}.parquet", index=False)
+        
+        if 'csv' in formats:
+            self.logger.info("Saving to CSV format...")
+            self.save_to_csv(combined_df, base_path)
+        
+        if 'excel' in formats:
+            self.logger.info("Saving to Excel format...")
+            self.save_to_excel(combined_df, base_path)
+        
+        # Clean up chunk files
+        for chunk_file in chunk_files:
+            os.remove(chunk_file)
+        
+        # Save metadata
+        metadata = {
+            'num_records': self.num_records,
+            'formats_generated': formats,
+            'date_generated': datetime.now().isoformat(),
+            'generation_time': str(datetime.now() - start_time),
+            'column_count': len(combined_df.columns),
+            'memory_used_gb': psutil.Process().memory_info().rss / 1024 / 1024 / 1024
+        }
+        
+        with open(f"{output_dir}/metadata.json", 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        self.logger.info(f"Data generation complete! Time taken: {datetime.now() - start_time}")
+        self.logger.info(f"Output directory: {output_dir}")
+
+def main():
+    # Initialize generator with 100M records
+    generator = MassivePIGenerator(
+        num_records=100_000_000,  # 100 million records
+        chunk_size=500_000,       # 500K records per chunk
+        seed=42
+    )
+    
+    # Generate and save data in all formats
+    generator.generate_and_save(
+        output_dir='pi_data_100m',
+        formats=['parquet', 'csv', 'excel']
+    )
+
+if __name__ == "__main__":
+    main()
