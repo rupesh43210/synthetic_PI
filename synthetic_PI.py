@@ -1,12 +1,13 @@
 import pandas as pd
 from faker import Faker
+from tqdm import tqdm
 import random
 
 # Initialize Faker instance
 fake = Faker()
 
 # Set total number of rows and batch size
-total_rows = 1000000  # Target total records
+total_rows = 1000000  # Total records to generate
 batch_size = 100000  # Adjust for memory efficiency
 
 # Define an extensive set of complex PI columns
@@ -25,13 +26,8 @@ columns = [
     "Emergency Contact Relation", "Family Medical History", "Biometric ID"
 ]
 
-# Generate a list of transaction types for added variability
 transaction_types = ["Purchase", "Refund", "Withdrawal", "Deposit", "Transfer"]
-
-# Generate random genetic test results
 genetic_tests = ["Positive", "Negative", "Inconclusive"]
-
-# Family medical history types
 family_medical_history = ["Diabetes", "Heart Disease", "Cancer", "None"]
 
 # Function to generate a batch of synthetic data with diverse PI attributes
@@ -69,8 +65,8 @@ def generate_data_batch(batch_size):
         "Income": [fake.random_int(min=30000, max=200000) for _ in range(batch_size)],
         "Favorite Color": [fake.color_name() for _ in range(batch_size)],
         "Blood Type": [fake.random_element(elements=("A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-")) for _ in range(batch_size)],
-        "Height": [fake.random_int(min=150, max=200) for _ in range(batch_size)],  # in cm
-        "Weight": [fake.random_int(min=50, max=120) for _ in range(batch_size)],  # in kg
+        "Height": [fake.random_int(min=150, max=200) for _ in range(batch_size)],
+        "Weight": [fake.random_int(min=50, max=120) for _ in range(batch_size)],
         "Insurance Policy": [fake.bothify(text="INS-#####") for _ in range(batch_size)],
         "Policy Expiry": [fake.date_this_century(before_today=False, after_today=True) for _ in range(batch_size)],
         "Insurance Provider": [fake.company() for _ in range(batch_size)],
@@ -94,8 +90,8 @@ def generate_data_batch(batch_size):
     }
     return pd.DataFrame(data)
 
-# Save each batch to separate Excel files to manage memory
-for i in range(total_rows // batch_size):
+# Use tqdm for a progress bar
+for i in tqdm(range(total_rows // batch_size), desc="Generating Batches"):
     batch_df = generate_data_batch(batch_size)
     output_file = f"complex_synthetic_pi_data_batch_{i + 1}.xlsx"
     batch_df.to_excel(output_file, index=False)
