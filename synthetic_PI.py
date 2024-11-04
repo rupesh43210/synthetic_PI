@@ -103,9 +103,6 @@ class SystemResources:
             f"  Memory per Worker: {summary['optimization']['memory_per_worker_gb']:.1f} GB"
         )
 
-
-
-
 class PIDataGenerator:
     def __init__(self):
         """Initialize with dynamic system resource detection"""
@@ -116,6 +113,37 @@ class PIDataGenerator:
         
         self.logger.info("Detected System Configuration:")
         self.logger.info(str(self.system))
+
+    def setup_cleanup_handlers(self):
+        """Setup signal handlers for graceful cleanup"""
+        def cleanup_handler(signum, frame):
+            self.logger.info("Cleanup signal received. Terminating processes...")
+            self.cleanup()
+            exit(0)
+
+        def exit_handler():
+            self.cleanup()
+
+        # Register signal handlers
+        signal.signal(signal.SIGTERM, cleanup_handler)
+        signal.signal(signal.SIGINT, cleanup_handler)
+        atexit.register(exit_handler)
+
+        # Initialize process tracking
+        self.processes = []
+        self.temp_files = []
+
+    def setup_logging(self):
+        """Configure logging with timestamp and performance metrics"""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('pi_generator.log'),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
 
     def setup_performance_parameters(self):
         """Setup performance parameters based on detected resources"""
@@ -139,25 +167,12 @@ class PIDataGenerator:
         self.logger.info(f"Chunk size: {self.chunk_size:,} records")
         self.logger.info(f"I/O workers: {self.io_workers}")
 
-    def setup_logging(self):
-        """Configure logging with timestamp and performance metrics"""
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler('pi_generator.log'),
-                logging.StreamHandler()
-            ]
-        )
-        self.logger = logging.getLogger(__name__)
-
     def monitor_resources(self):
         """Monitor current resource usage"""
         process = psutil.Process()
         with process.oneshot():
             # CPU Usage
             cpu_percent = process.cpu_percent()
-            cpu_times = process.cpu_times()
             
             # Memory Usage
             memory_info = process.memory_info()
@@ -219,7 +234,12 @@ class PIDataGenerator:
                     'dob': [fake.date_of_birth(minimum_age=18, maximum_age=90).strftime('%Y-%m-%d') 
                            for _ in range(start_idx, end_idx)],
                     'gender': genders[start_idx:end_idx],
-                    'state': states[start_idx:end_idx]
+                    'state': states[start_idx:end_idx],
+                    'credit_card': [f"{random.randint(1000,9999):04d}-{random.randint(1000,9999):04d}-"
+                                  f"{random.randint(1000,9999):04d}-{random.randint(1000,9999):04d}" 
+                                  for _ in range(start_idx, end_idx)],
+                    'bank_account': [f"ACCT{random.randint(10000000, 99999999):08d}" 
+                                   for _ in range(start_idx, end_idx)]
                 }
             
             # Create and run threads
@@ -261,9 +281,53 @@ class PIDataGenerator:
         except Exception as e:
             return f"ERROR: {str(e)}"
 
+    def combine_chunks(self, chunk_files, output_prefix):
+        """Combine chunks with dynamic batch size"""
+        try:
+            # Read chunks in parallel
+            with ThreadPoolExecutor(max_workers=self.io_workers) as executor:
+                futures = [
+                    executor.submit(pd.read_parquet, cf) 
+                    for cf in chunk_files if not cf.startswith("ERROR")
+                ]
+                dfs = [future.result() for future in futures]
+
+            if dfs:
+                # Combine DataFrames
+                combined_df = pd.concat(dfs, ignore_index=True)
+
+                # Save in multiple formats using parallel I/O
+                with ThreadPoolExecutor(max_workers=self.io_workers) as executor:
+                    # Save parquet
+                    executor.submit(
+                        combined_df.to_parquet,
+                        f"output/{output_prefix}.parquet",
+                        index=False,
+                        compression='snappy'
+                    )
+                    
+                    # Save CSV
+                    executor.submit(
+                        combined_df.to_csv,
+                        f"output/{output_prefix}.csv",
+                        index=False
+                    )
+
+                del combined_df
+                gc.collect()
+
+            # Cleanup original chunk files
+            for cf in chunk_files:
+                if os.path.exists(cf):
+                    os.remove(cf)
+
+        except Exception as e:
+            self.logger.error(f"Error combining chunks: {e}")
+
     def generate_data(self, num_records=100_000_000, seed=42):
         """Main data generation method with dynamic optimization"""
         start_time = datetime.now()
+        duration = None
         
         try:
             os.makedirs('temp_chunks', exist_ok=True)
@@ -336,7 +400,8 @@ class PIDataGenerator:
             raise
         finally:
             self.cleanup()
-            self.logger.info(f"Process completed. Total time: {duration}")
+            if duration:
+                self.logger.info(f"Process completed. Total time: {duration}")
 
     def cleanup(self):
         """Clean up resources and temporary files"""
